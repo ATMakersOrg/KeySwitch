@@ -3,14 +3,11 @@
 
 from digitalio import DigitalInOut,Direction,Pull
 import board
-from adafruit_hid.keyboard import Keyboard
-from adafruit_hid.mouse import Mouse
-
 
 #from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS
 
 #import adafruit_dotstar
-from time import sleep
+from time import sleep, monotonic
 
 import SettingsParser
 settings = SettingsParser.Settings()
@@ -21,12 +18,16 @@ settings.read('/settings.ini')
 #dot = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.8)
 
 #def hex2rgb(hexcode):
-#    red = int("0x"+hexcode[0:2], 16)
+#red = int("0x"+hexcode[0:2], 16)
 #    green = int("0x"+hexcode[2:4], 16)
 #    blue = int("0x"+hexcode[4:6], 16)
 #    rgb = (red, green, blue)
 #    print(rgb)
 #    return rgb
+
+def handleLongPress(switchCode):
+    if (switchCode == 0b000110):
+        settings.nextMode()
 
 pins = [ 
         DigitalInOut(board.D0),
@@ -39,26 +40,40 @@ for p in pins:
     p.direction = Direction.INPUT
     p.pull = Pull.UP
 
-values = [False]*6
 
-kbd = Keyboard()
+black = (0, 0, 0)
+onColor = (0xFF, 0, 0xFF)
+modeDelay = 1
+
+lastCode = 0
+codeStartTime = monotonic()
 
 while(True):
     #read the 5 switches
     num = 0
+    switchCode = 0x00
+    readTime = monotonic()
     for p in pins:
         num = num + 1
-        values[num] = p.value
-    for t in settings.currentMode.triggers:
-        activate = True
-        for s in t.switches:
-            #If the value is True, it's not pressed
-            if (values[s]):
-                activate = False
+        if(p.value == False):
+            switchCode |= (1 << num)
+    if (switchCode != 0):
+        for t in settings.getCurrentMode().triggers:
+            if (t.switchCode == switchCode):
+                for a in t.actions:
+#                    dot[0] = onColor
+                    #print(a.codes)
+                    a.perform()
                 break
-        if (activate):
-            for a in t.actions:
-                #print(a.codes)
-                kbd.send(*a.codes)
-            
+        if (switchCode != lastCode):
+            lastCode = switchCode
+            codeStartTime = readTime
+        else:
+            if (readTime > (codeStartTime + modeDelay)):
+                handleLongPress(switchCode)
+                codeStartTime = readTime
+    lastCode = switchCode
+
+
     sleep(.1)
+#    dot[0] = black
