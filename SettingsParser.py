@@ -5,8 +5,6 @@ from adafruit_hid.mouse import Mouse
 kbd = Keyboard()
 mouse = Mouse()
 
-DEBUG=1
-
 #States
 READING_GLOBALS=1
 READING_MODE=2
@@ -16,13 +14,9 @@ READING_MODE=2
 KBD=1
 MOUSE=2
 
-def debug(value):
-    if (DEBUG == 1):
-        print(value)
-
 class Mode:
     def __init__(self, name):
-        self.name=name
+#        self.name=name
         self.settings = {}
         self.triggers = []
 
@@ -81,7 +75,7 @@ class Action:
                     mouse.move(5,0)
                 elif (c == Action.LEFT_CLICK):
                     mouse.click(Mouse.LEFT_BUTTON)
-                elif (c == Action.MOUSE_RIGHT):
+                elif (c == Action.RIGHT_CLICK):
                     mouse.click(Mouse.RIGHT_BUTTON)
 
 class Settings:
@@ -95,26 +89,16 @@ class Settings:
 
     def nextMode(self):
         self.currentModeIdx = (self.currentModeIdx + 1) % len(self.modes)
-        debug("Setting mode to: %s" % self.modes[self.currentModeIdx].name)
-
-    def read(self, filename=None, fp=None):
+    def read(self, filename=None):
         state=READING_GLOBALS
         modeName = None
-#      """Read and parse a filename or a list of filenames."""
-        if not fp and not filename:
-            print("ERROR : no filename and no fp")
-            raise
-        elif not fp and filename:
-            fp = open(filename, 'rt')
-        
+        fp = open(filename, 'rt')
         curMode = None
         for line in fp:
-            #remove the comment
             parts = line.split(";", 1)
             value = str(parts[0]).strip()
             if (value == ''):
                 continue
-            #debug(value)
             if (state == READING_GLOBALS):
                 if (value[0]=='[' and value[-1]==']'): #new  mode name
                     modeName = value[1:-1]
@@ -126,8 +110,6 @@ class Settings:
                     self.globalSettings[settingParts[0].strip()] = settingParts[1].strip()
             elif (state == READING_MODE):
                 if (value[0]=='[' and value[-1]==']'): #new  mode name
-                    #debug(self.modes[modeName].settings)
-                    #debug(self.modes[modeName].triggers)
                     modeName = value[1:-1]
                     curMode = Mode(modeName)
                     self.modes.append(curMode)
@@ -136,3 +118,23 @@ class Settings:
                 else:#setting
                     settingParts = line.split("=",1)
                     curMode.settings[settingParts[0].strip()] = settingParts[1].strip()
+		#At this point, we've read the settings, we need to get some defaults in and do some cleanup
+		if ('modedelay' in self.globalSettings):
+			self.globalSettings['modedelay'] = float(self.globalSettings['modedelay'])
+		else:
+			self.globalSettings['modedelay'] = 1.0
+		if ('repeatdelay' in self.globalSettings):
+			self.globalSettings['repeatdelay'] = float(self.globalSettings['repeatdelay'])
+		else:
+			self.globalSettings['repeatdelay'] = .15
+	defmodecode=0b000010
+	if ('modeswitches' in self.globalSettings):
+		val = self.globalSettings['modeswitches']
+		if(isinstance(val, str)):
+			switchStrings = val.split(",")
+			defmodecode = 0b000000
+			for s in switchStrings:
+				defmodecode |= (1 << int(s))
+		else:
+			defmodecode = (0b00000001 << int(val))
+	self.globalSettings['modeswitches']=defmodecode
