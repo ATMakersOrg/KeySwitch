@@ -1,8 +1,15 @@
 import adafruit_dotstar
 import board
 from digitalio import DigitalInOut,Direction,Pull
-
 from time import sleep, monotonic
+
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.mouse import Mouse
+
+from adafruit_hid.keycode import Keycode
+from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS
+from mode import Mode
+
 def hex2rgb(hexcode):
     #added 1 to all for #
     red = int("0x"+hexcode[1:3], 16)
@@ -11,25 +18,36 @@ def hex2rgb(hexcode):
     rgb = (red, green, blue)
     return rgb
 
-dot = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.8)
+dot = adafruit_dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.2)
 
-import SettingsParser
-settings = SettingsParser.Settings()
-settings.read('/settings.ini')
+mouse = Mouse()
+kbd = Keyboard()
+layout = KeyboardLayoutUS(kbd)
 
-modeDelay = settings.globalSettings['modedelay']
-repeatDelay = settings.globalSettings['repeatdelay']
-modeSwitchCode = settings.globalSettings['modeswitches']
-modeColor=hex2rgb(settings.getCurrentMode().settings.get("color","#555555"))
+import settings
+
+print(settings.modes)
+
+modeDelay = settings.modeDelay
+repeatDelay = settings.repeatDelay
+
+modeSwitchCode = 0x0
+
+for num in settings.modeSwitches:
+    modeSwitchCode |= (1 << num)
+
+modeNum = 0
+currentMode = settings.modes[modeNum]
+
+modeColor=hex2rgb(currentMode.color)
+
 
 def handleLongPress(switchCode):
     global modeColor
-    if (switchCode == modeSwitchCode):
-        settings.nextMode()
-        modeColor=hex2rgb(settings.getCurrentMode().settings.get("color","#555555"))
-        dot[0]=modeColor
-
-pins = [ 
+    global modeNum
+    global currentMode
+#################
+pins = [
         DigitalInOut(board.D0),
         DigitalInOut(board.D1),
         DigitalInOut(board.D2),
@@ -52,17 +70,28 @@ while(True):
         if(p.value == False):
             switchCode |= (1 << num)
     if (switchCode != 0):
-        for t in settings.getCurrentMode().triggers:
-            if (t.switchCode == switchCode):
-                for a in t.actions:
-                    a.perform()
-                break
+        if (switchCode in currentMode.actions):
+            a = currentMode.actions[switchCode]
+            if a[0] == Mode.KEY_PRESS:
+                (actionType, keys, longPress) = a
+                print(keys)
+                if type(keys) is str:
+                    layout.write(keys)
+                else:
+                    kbd.send(keys)
         if (switchCode != lastCode):
+            print("NewCode")
             lastCode = switchCode
             codeStartTime = readTime
         else:
             if (readTime > (codeStartTime + modeDelay)):
-                handleLongPress(switchCode)
+                print("longPress")
+                if (switchCode == modeSwitchCode):
+                    numOfModes = len(settings.modes)
+                    modeNum = (modeNum + 1) % numOfModes
+                    currentMode = settings.modes[modeNum]
+                    modeColor=hex2rgb(currentMode.color)
+                    dot[0]=modeColor
                 codeStartTime = readTime
     lastCode = switchCode
     sleep(repeatDelay)
