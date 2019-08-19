@@ -59,6 +59,8 @@ for p in pins:
     p.pull = Pull.UP
 
 lastCode = 0
+lastModifier = 0
+repeat = 0
 codeStartTime = monotonic()
 
 while(True):
@@ -73,12 +75,25 @@ while(True):
         if (switchCode in currentMode.actions):
             a = currentMode.actions[switchCode]
             if a[0] == Mode.KEY_PRESS:
-                (actionType, keys, longPress) = a
+                (actionType, keys, modifier, longPress) = a
                 print(keys)
-                if type(keys) is str:
-                    layout.write(keys)
+                if (modifier):
+                    kbd.press(keys) if lastModifier==0 else kbd.release(keys)
+                    lastModifier=not lastModifier
+                    print("modifier is", lastModifier)
                 else:
-                    kbd.send(keys)
+                    if type(keys) is str:
+                        layout.write(keys)
+                    else:
+                        kbd.send(keys)
+            elif a[0] == Mode.MOUSE_MOVE:
+                (actionType, x, y ,w) = a
+                print("x=",x,",y=",y,",w=",w)
+                mouse.move(x,y,w)
+            elif a[0] == Mode.MOUSE_CLICK:
+                (actionType, button) = a
+                print(button)
+                mouse.click(button)
         if (switchCode != lastCode):
             print("NewCode")
             lastCode = switchCode
