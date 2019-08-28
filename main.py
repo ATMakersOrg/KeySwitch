@@ -87,12 +87,16 @@ while(True):
                 a = currentMode.actions[lastSwitchCode]
                 if a[0] == Mode.KEY_PRESS:
                     (actionType, keys, modifier, longPress) = a
-                    for k in keys:
-                        print("KeyPressed=",k)
-                        if type(k) is str:
-                            stringPress(k)
-                        else:
-                            kbd.press(k)
+                    if type(keys) is int:
+                        print("KeyPressed=",keys)
+                        kbd.press(keys)
+                    else:
+                        for k in keys:
+                            print("KeyPressed=",k)
+                            if type(k) is str:
+                                stringPress(k)
+                            else:
+                                kbd.press(k)
                 elif a[0] == Mode.MOUSE_MOVE:
                     (actionType, x, y ,w) = a
                     print("MouseMove x=",x,",y=",y,",w=",w)
