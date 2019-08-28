@@ -41,6 +41,13 @@ currentMode = settings.modes[modeNum]
 
 modeColor=hex2rgb(currentMode.color)
 
+def stringPress(string):
+    for char in string:
+        keycode = layout._char_to_keycode(char)
+        if keycode & layout.SHIFT_FLAG:
+            keycode &= ~layout.SHIFT_FLAG
+            kbd.press(Keycode.SHIFT)
+        kbd.press(keycode)
 
 def handleLongPress(switchCode):
     global modeColor
@@ -59,12 +66,12 @@ for p in pins:
     p.pull = Pull.UP
 
 lastCode = 0
-lastModifier = 0
 repeat = 0
 codeStartTime = monotonic()
 
 while(True):
     num = 0
+    sw = [0,0,0,0,0]
     switchCode = 0x00
     readTime = monotonic()
     for p in pins:
@@ -72,28 +79,29 @@ while(True):
         if(p.value == False):
             switchCode |= (1 << num)
     if (switchCode != 0):
-        if (switchCode in currentMode.actions):
-            a = currentMode.actions[switchCode]
-            if a[0] == Mode.KEY_PRESS:
-                (actionType, keys, modifier, longPress) = a
-                print(keys)
-                if (modifier):
-                    kbd.press(keys) if lastModifier==0 else kbd.release(keys)
-                    lastModifier=not lastModifier
-                    print("modifier is", lastModifier)
-                else:
-                    if type(keys) is str:
-                        layout.write(keys)
-                    else:
-                        kbd.send(keys)
-            elif a[0] == Mode.MOUSE_MOVE:
-                (actionType, x, y ,w) = a
-                print("x=",x,",y=",y,",w=",w)
-                mouse.move(x,y,w)
-            elif a[0] == Mode.MOUSE_CLICK:
-                (actionType, button) = a
-                print(button)
-                mouse.click(button)
+        lastSwitchCode = switchCode
+        for i in range(num):
+            sw[num-i-1]=lastSwitchCode/pow(2,num-i)
+            lastSwitchCode= lastSwitchCode%pow(2,num-i)
+            if (lastSwitchCode in currentMode.actions):
+                a = currentMode.actions[lastSwitchCode]
+                if a[0] == Mode.KEY_PRESS:
+                    (actionType, keys, modifier, longPress) = a
+                    for k in keys:
+                        print("KeyPressed=",k)
+                        if type(k) is str:
+                            stringPress(k)
+                        else:
+                            kbd.press(k)
+                elif a[0] == Mode.MOUSE_MOVE:
+                    (actionType, x, y ,w) = a
+                    print("MouseMove x=",x,",y=",y,",w=",w)
+                    mouse.move(x,y,w)
+                elif a[0] == Mode.MOUSE_CLICK:
+                    (actionType, button) = a
+                    print("MouseClick=", button)
+                    mouse.click(button)
+            lastSwitchCode= lastSwitchCode%pow(2,num-i)
         if (switchCode != lastCode):
             print("NewCode")
             lastCode = switchCode
@@ -107,7 +115,9 @@ while(True):
                     currentMode = settings.modes[modeNum]
                     modeColor=hex2rgb(currentMode.color)
                     dot[0]=modeColor
-                codeStartTime = readTime
+                    codeStartTime = readTime
+    else:
+        kbd.release_all()
     lastCode = switchCode
     sleep(repeatDelay)
     dot[0]=modeColor
