@@ -28,8 +28,8 @@ class Mode(object):
                 switchBits |= sBits
         self.actions[switchBits]= action
 
-    def keyPress(self, switches, action, modifier=False,longPress=False):
-        self._addAction(switches, (Mode.KEY_PRESS, action, modifier, longPress))
+    def keyPress(self, switches, action,longPress=False):
+        self._addAction(switches, (Mode.KEY_PRESS, action, longPress))
 
     def mouseMove(self, switches, x, y , w=0):
         self._addAction(switches, (Mode.MOUSE_MOVE, x, y, w))

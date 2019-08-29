@@ -41,13 +41,13 @@ currentMode = settings.modes[modeNum]
 
 modeColor=hex2rgb(currentMode.color)
 
-def stringPress(string):
+def stringPress(string,modifier):
     for char in string:
         keycode = layout._char_to_keycode(char)
         if keycode & layout.SHIFT_FLAG:
             keycode &= ~layout.SHIFT_FLAG
             kbd.press(Keycode.SHIFT)
-        kbd.press(keycode)
+        kbd.press(keycode,modifier)
 
 def handleLongPress(switchCode):
     global modeColor
@@ -68,10 +68,11 @@ for p in pins:
 lastCode = 0
 repeat = 0
 codeStartTime = monotonic()
+modifierCode = 0
+modifierIsOn = 0
 
 while(True):
     num = 0
-    sw = [0,0,0,0,0]
     switchCode = 0x00
     readTime = monotonic()
     for p in pins:
@@ -79,24 +80,36 @@ while(True):
         if(p.value == False):
             switchCode |= (1 << num)
     if (switchCode != 0):
-        lastSwitchCode = switchCode
+        tempSwitchCode=switchCode
         for i in range(num):
-            sw[num-i-1]=lastSwitchCode/pow(2,num-i)
-            lastSwitchCode= lastSwitchCode%pow(2,num-i)
-            if (lastSwitchCode in currentMode.actions):
-                a = currentMode.actions[lastSwitchCode]
+            if (int(tempSwitchCode/pow(2,num-i))==1):
+                tempSwitchCode = tempSwitchCode%pow(2,num-i)
+                singleSwitchCode=pow(2,num-i)
+            else:
+                singleSwitchCode=0
+            if (singleSwitchCode in currentMode.actions):
+                a = currentMode.actions[singleSwitchCode]
                 if a[0] == Mode.KEY_PRESS:
-                    (actionType, keys, modifier, longPress) = a
+                    (actionType, keys, longPress) = a
                     if type(keys) is int:
                         print("KeyPressed=",keys)
-                        kbd.press(keys)
+                        if keys in settings.modifierKeys:
+                            modifierCode=keys if modifierIsOn==0 else 0
+                            modifierIsOn = not modifierIsOn
+                            print("modifierIsOn=",modifierIsOn)
+                        else:
+                            kbd.press(keys,modifierCode)
                     else:
                         for k in keys:
                             print("KeyPressed=",k)
                             if type(k) is str:
-                                stringPress(k)
+                                stringPress(k,modifierCode)
+                            elif type(k) is int and k in settings.modifierKeys:
+                                modifierCode=k if modifierIsOn==0 else 0
+                                modifierIsOn = not modifierIsOn
+                                print("modifierIsOn=",modifierIsOn)
                             else:
-                                kbd.press(k)
+                                kbd.press(k,modifierCode)
                 elif a[0] == Mode.MOUSE_MOVE:
                     (actionType, x, y ,w) = a
                     print("MouseMove x=",x,",y=",y,",w=",w)
@@ -105,7 +118,6 @@ while(True):
                     (actionType, button) = a
                     print("MouseClick=", button)
                     mouse.click(button)
-            lastSwitchCode= lastSwitchCode%pow(2,num-i)
         if (switchCode != lastCode):
             print("NewCode")
             lastCode = switchCode
