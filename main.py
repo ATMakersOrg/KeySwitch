@@ -47,7 +47,14 @@ def stringPress(string,modifier):
         if keycode & layout.SHIFT_FLAG:
             keycode &= ~layout.SHIFT_FLAG
             kbd.press(Keycode.SHIFT)
-        kbd.press(keycode,modifier)
+        for m in modifier:
+            kbd.press(m)
+        kbd.press(keycode)
+
+def keyPress(keycode,modifier):
+        for m in modifier:
+            kbd.press(m)
+        kbd.press(keycode)
 
 def handleLongPress(switchCode):
     global modeColor
@@ -68,8 +75,11 @@ for p in pins:
 lastCode = 0
 repeat = 0
 codeStartTime = monotonic()
-modifierCode = 0
-modifierIsOn = 0
+modifiersOn = []
+modifiers = {}
+
+for i in range(len(settings.modifierKeys)):
+    modifiers[settings.modifierKeys[i]] = 0
 
 while(True):
     num = 0
@@ -80,44 +90,37 @@ while(True):
         if(p.value == False):
             switchCode |= (1 << num)
     if (switchCode != 0):
-        tempSwitchCode=switchCode
-        for i in range(num):
-            if (int(tempSwitchCode/pow(2,num-i))==1):
-                tempSwitchCode = tempSwitchCode%pow(2,num-i)
-                singleSwitchCode=pow(2,num-i)
-            else:
-                singleSwitchCode=0
-            if (singleSwitchCode in currentMode.actions):
-                a = currentMode.actions[singleSwitchCode]
-                if a[0] == Mode.KEY_PRESS:
-                    (actionType, keys, longPress) = a
-                    if type(keys) is int:
-                        print("KeyPressed=",keys)
-                        if keys in settings.modifierKeys:
-                            modifierCode=keys if modifierIsOn==0 else 0
-                            modifierIsOn = not modifierIsOn
-                            print("modifierIsOn=",modifierIsOn)
-                        else:
-                            kbd.press(keys,modifierCode)
+        if (switchCode in currentMode.actions):
+            a = currentMode.actions[switchCode]
+            if a[0] == Mode.KEY_PRESS:
+                (actionType, keys, longPress) = a
+                if type(keys) is int:
+                    print("KeyPressed=",keys)
+                    if keys in settings.modifierKeys:
+                        modifiersOn.append(keys) if modifiers[keys]==0 else modifiersOn.remove(keys)
+                        modifiers[keys] = not modifiers[keys]
+                        print("Modifier",keys,"is:",modifiers[keys])
                     else:
-                        for k in keys:
-                            print("KeyPressed=",k)
-                            if type(k) is str:
-                                stringPress(k,modifierCode)
-                            elif type(k) is int and k in settings.modifierKeys:
-                                modifierCode=k if modifierIsOn==0 else 0
-                                modifierIsOn = not modifierIsOn
-                                print("modifierIsOn=",modifierIsOn)
-                            else:
-                                kbd.press(k,modifierCode)
-                elif a[0] == Mode.MOUSE_MOVE:
-                    (actionType, x, y ,w) = a
-                    print("MouseMove x=",x,",y=",y,",w=",w)
-                    mouse.move(x,y,w)
-                elif a[0] == Mode.MOUSE_CLICK:
-                    (actionType, button) = a
-                    print("MouseClick=", button)
-                    mouse.click(button)
+                        keyPress(keys,modifiersOn)
+                else:
+                    for k in keys:
+                        print("KeyPressed=",k)
+                        if type(k) is str:
+                            stringPress(k,modifiersOn)
+                        elif type(k) is int and k in settings.modifierKeys:
+                            modifiersOn.append(k) if modifiers[k]==0 else modifiersOn.remove(k)
+                            modifiers[k] = not modifiers[k]
+                            print("Modifier",k,"is:",modifiers[k])
+                        else:
+                            keyPress(k,modifiersOn)
+            elif a[0] == Mode.MOUSE_MOVE:
+                (actionType, x, y ,w) = a
+                print("MouseMove x=",x,",y=",y,",w=",w)
+                mouse.move(x,y,w)
+            elif a[0] == Mode.MOUSE_CLICK:
+                (actionType, button) = a
+                print("MouseClick=", button)
+                mouse.click(button)
         if (switchCode != lastCode):
             print("NewCode")
             lastCode = switchCode
