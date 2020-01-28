@@ -8,18 +8,34 @@ This is a CircuitPython project and many thanks to Adafruit and its staff and co
 
 ## Update KeySwitch code
 
-### Update uf2 bootloader
+### Method 1
 
-*	Download the latest version of adafruit-circuitpython-trinket_mx-x.x.x.uf2 file from https://github.com/adafruit/circuitpython/releases
-*	Example: Download adafruit-circuitpython-trinket_m0-3.1.2.uf2 file from https://github.com/adafruit/circuitpython/releases/tag/3.1.2 
+*	Download the necessary files from KeySwitch github repository.
+  1. Visit KeySwitch github repository at https://github.com/ATMakersOrg/KeySwitch
+  2. Click on “Clone or download” button” in green.
+  3. Click on “Download Zip” to download the necessary file.
+  4. Extract “KeySwitch-master.zip” to the directory of your choice.
+*	Tap the reset button twice to enter the bootloader. If it doesn't work on the first try, don't be discouraged. The rhythm of the taps needs to be correct and sometimes it takes a few tries.
+*	The name of the drive will change from CIRCUITPY to TRINKETBOOT.
+*	Drag and drop the KEYSWITCH_TRINKET.uf2 file to TRINKETBOOT drive.
+* The led color should now change to blue to indicate color of the first mode.
+
+### Method 2
+
+#### Update uf2 bootloader
+
+*	Download the latest version of CircuitPython (Version 5.0) for Adafruit Trinket M0 called something similar to adafruit-circuitpython-trinket_m0-en_US-5.0.0.uf2 file from https://circuitpython.org/board/trinket_m0/
+
+*	Example: Download adafruit-circuitpython-trinket_m0-en_US-5.0.0-beta.4.uf2 file from https://circuitpython.org/board/trinket_m0/
+
 *	Download drivers if you are using windows 7. You will not need to install drivers on Mac, Linux or Windows 10. https://github.com/adafruit/Adafruit_Windows_Drivers/releases/download/2.3.4/adafruit_drivers_2.3.4.0.exe 
 *	Tap the reset button twice to enter the bootloader. If it doesn't work on the first try, don't be discouraged. The rhythm of the taps needs to be correct and sometimes it takes a few tries.
 *	The name of the drive will change from CIRCUITPY to TRINKETBOOT.
-*	Drag and drop the adafruit-circuitpython-trinket_mx-x.x.x.uf2 file to TRINKETBOOT drive.
+*	Drag and drop the adafruit-circuitpython-trinket_m0-en_US-5.0.0.uf2 file to TRINKETBOOT drive.
 *	The lights should flash again, BOOT will disappear and a new drive will show up on your computer called CIRCUITPY.
 *	Now you can just change the code.
 
-### Update Software 
+#### Update Software 
 
 *	Download the necessary files from KeySwitch github repository.
   1. Visit KeySwitch github repository at https://github.com/ATMakersOrg/KeySwitch
