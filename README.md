@@ -18,6 +18,7 @@ This is a CircuitPython project and many thanks to Adafruit and its staff and co
 *	Tap the reset button twice to enter the bootloader. If it doesn't work on the first try, don't be discouraged. The rhythm of the taps needs to be correct and sometimes it takes a few tries.
 *	The name of the drive will change from CIRCUITPY to TRINKETBOOT.
 *	Drag and drop the KEYSWITCH_TRINKET.uf2 file to TRINKETBOOT drive.
+*	The name of the drive will change back from TRINKETBOOT to CIRCUITPY.
 * The led color should now change to blue to indicate color of the first mode.
 
 ### Method 2
